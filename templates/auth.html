@@ -1,0 +1,33 @@
+<!DOCTYPE html><html lang="pt-br"><head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ServiPro</title><style>
+*{box-sizing:border-box;font-family:'Segoe UI',sans-serif;margin:0;padding:0}
+body{background:linear-gradient(135deg,#2563eb,#1746c0);min-height:100vh;display:flex;align-items:center;justify-content:center;padding:18px}
+.card{background:#fff;border-radius:22px;padding:32px 26px;max-width:380px;width:100%;box-shadow:0 12px 40px rgba(0,0,0,.2)}
+h1{text-align:center;color:#1746c0;font-size:30px;margin-bottom:4px}
+.sub{text-align:center;color:#8794a8;font-size:13px;margin-bottom:22px}
+label{font-size:12px;font-weight:600;display:block;margin:12px 0 4px;color:#48566b}
+input{width:100%;padding:12px;border:1px solid #e1e7f0;border-radius:11px;font-size:14px}
+button{width:100%;margin-top:20px;padding:13px;border:none;border-radius:13px;background:linear-gradient(135deg,#2563eb,#1746c0);color:#fff;font-size:15px;font-weight:700;cursor:pointer}
+.link{text-align:center;margin-top:16px;font-size:13px}.link a{color:#1746c0;font-weight:600;text-decoration:none}
+.flash{background:#fee2e2;color:#b91c1c;padding:10px;border-radius:10px;font-size:13px;margin-bottom:12px;text-align:center}
+</style></head><body><div class="card">
+<h1>ServiPro</h1><p class="sub">Seu caderninho inteligente de servicos</p>
+{% with m=get_flashed_messages() %}{% if m %}<div class="flash">{{m[0]}}</div>{% endif %}{% endwith %}
+{% if modo=="cadastro" %}
+<form method="post" action="/cadastro">
+ <label>Seu nome</label><input name="nome" placeholder="Joao Eletricista" required>
+ <label>Email</label><input name="email" type="email" placeholder="voce@email.com" required>
+ <label>Senha</label><input name="senha" type="password" placeholder="minimo 4 caracteres" required>
+ <button>Criar conta gratis</button>
+</form>
+<p class="link">Ja tem conta? <a href="/login">Entrar</a></p>
+{% else %}
+<form method="post" action="/login">
+ <label>Email</label><input name="email" type="email" placeholder="voce@email.com" required>
+ <label>Senha</label><input name="senha" type="password" required>
+ <button>Entrar</button>
+</form>
+<p class="link">Nao tem conta? <a href="/cadastro">Criar gratis</a></p>
+{% endif %}
+</div></body></html>
