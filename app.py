@@ -123,7 +123,20 @@ def orcamento(sid):
     msg=f"*Orcamento - ServiPro*%0A%0AOla {s['cliente']}!%0A%0AServico: {s['descricao']}%0AValor: R$ {s['valor']:.2f}%0AData: {s['data']}%0A%0AQualquer duvida estou a disposicao!"
     tel="".join(c for c in s["telefone"] if c.isdigit())
     return redirect(f"https://wa.me/55{tel}?text={msg}")
-
+# ---------------- ESQUECI A SENHA ----------------
+@app.route("/recuperar", methods=["GET","POST"])
+def recuperar():
+    if request.method=="POST":
+        f=request.form; con=db()
+        u=con.execute("SELECT * FROM usuarios WHERE email=?", (f["email"].lower(),)).fetchone()
+        if not u:
+            con.close(); flash("Email nao encontrado!"); return redirect("/recuperar")
+        con.execute("UPDATE usuarios SET senha=? WHERE email=?",
+            (hash_senha(f["nova_senha"]), f["email"].lower()))
+        con.commit(); con.close()
+        flash("Senha redefinida! Faca login com a nova senha.")
+        return redirect("/login")
+    return render_template("recuperar.html")
 init_db()
 if __name__=="__main__":
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT",5000)))
