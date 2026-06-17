@@ -1,67 +1,73 @@
-<!DOCTYPE html>
-<html lang="pt-br"><head>
+<!DOCTYPE html><html lang="pt-br"><head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>ServiPro</title><style>
- *{box-sizing:border-box;font-family:'Segoe UI',sans-serif;margin:0;padding:0}
- body{background:#f4f6fb;color:#1e2a3a;padding:16px}
- .wrap{max-width:580px;margin:0 auto}
- .head{display:flex;align-items:center;gap:10px;justify-content:center;margin:6px 0 4px}
- .head h1{color:#1d4 ed8;font-size:26px;color:#1746c0}
- .sub{text-align:center;color:#8794a8;font-size:12px;margin-bottom:18px}
- .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:18px}
- .stat{background:#fff;border-radius:16px;padding:14px 8px;text-align:center;box-shadow:0 4px 14px rgba(23,70,192,.08)}
- .stat b{display:block;font-size:19px;color:#1746c0}.stat span{font-size:11px;color:#8794a8}
- .stat.orange b{color:#f97316}.stat.green b{color:#16a34a}
- .card{background:#fff;border-radius:18px;padding:20px;box-shadow:0 6px 20px rgba(23,70,192,.08);margin-bottom:16px}
- h3{color:#1746c0;margin-bottom:12px;font-size:16px}
- label{font-size:12px;font-weight:600;display:block;margin:10px 0 4px;color:#48566b}
- input,textarea{width:100%;padding:11px;border:1px solid #e1e7f0;border-radius:11px;font-size:14px}
- button{width:100%;margin-top:16px;padding:13px;border:none;border-radius:13px;
-   background:linear-gradient(135deg,#2563eb,#1746c0);color:#fff;font-size:15px;font-weight:700;cursor:pointer}
- .serv{border-left:4px solid #2563eb;padding:11px 14px;margin-bottom:10px;background:#fbfcff;border-radius:11px;font-size:13px}
- .serv.pago{border-color:#16a34a}.serv b{font-size:14px}
- .row{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px;margin-top:7px}
- .act{font-size:11px;text-decoration:none;padding:5px 10px;border-radius:8px;font-weight:600}
- .wpp{background:#dcfce7;color:#15803d}.ok{background:#dbeafe;color:#1746c0}.pay{background:#fef3c7;color:#92600e}.del{background:#fee2e2;color:#b91c1c}
- .tag{font-size:10px;padding:2px 8px;border-radius:20px;font-weight:700;background:#dbeafe;color:#1746c0}
- .tag.concluido{background:#dcfce7;color:#15803d}
- .valor{color:#16a34a;font-weight:700}
+*{box-sizing:border-box;font-family:'Segoe UI',sans-serif;margin:0;padding:0}
+body{background:#f4f6fb;color:#1e2a3a;padding:16px}.wrap{max-width:580px;margin:0 auto}
+.top{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+.top h1{color:#1746c0;font-size:24px}.top a{font-size:12px;color:#8794a8;text-decoration:none}
+.sub{color:#8794a8;font-size:12px;margin-bottom:16px}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px}
+.stat{background:#fff;border-radius:16px;padding:14px 8px;text-align:center;box-shadow:0 4px 14px rgba(23,70,192,.08)}
+.stat b{display:block;font-size:18px;color:#1746c0}.stat span{font-size:11px;color:#8794a8}
+.stat.orange b{color:#f97316}.stat.green b{color:#16a34a}
+.banner{border-radius:14px;padding:14px;margin-bottom:16px;font-size:13px;text-align:center}
+.banner.free{background:#dbeafe;color:#1746c0}
+.banner.block{background:#fef3c7;color:#92600e}
+.banner a{display:inline-block;margin-top:8px;background:#16a34a;color:#fff;padding:9px 18px;border-radius:10px;text-decoration:none;font-weight:700}
+.card{background:#fff;border-radius:18px;padding:20px;box-shadow:0 6px 20px rgba(23,70,192,.08);margin-bottom:16px}
+h3{color:#1746c0;margin-bottom:12px;font-size:16px}
+label{font-size:12px;font-weight:600;display:block;margin:10px 0 4px;color:#48566b}
+input,textarea{width:100%;padding:11px;border:1px solid #e1e7f0;border-radius:11px;font-size:14px}
+button{width:100%;margin-top:16px;padding:13px;border:none;border-radius:13px;background:linear-gradient(135deg,#2563eb,#1746c0);color:#fff;font-size:15px;font-weight:700;cursor:pointer}
+button:disabled{background:#cbd5e1;cursor:not-allowed}
+.serv{border-left:4px solid #2563eb;padding:11px 14px;margin-bottom:10px;background:#fbfcff;border-radius:11px;font-size:13px}
+.serv.pago{border-color:#16a34a}.row{display:flex;flex-wrap:wrap;gap:6px;margin-top:7px}
+.act{font-size:11px;text-decoration:none;padding:5px 10px;border-radius:8px;font-weight:600}
+.wpp{background:#dcfce7;color:#15803d}.ok{background:#dbeafe;color:#1746c0}.pay{background:#fef3c7;color:#92600e}.del{background:#fee2e2;color:#b91c1c}
+.tag{font-size:10px;padding:2px 8px;border-radius:20px;font-weight:700;background:#dbeafe;color:#1746c0}
+.tag.concluido{background:#dcfce7;color:#15803d}.valor{color:#16a34a;font-weight:700}
+.flash{background:#fef3c7;color:#92600e;padding:10px;border-radius:10px;font-size:13px;margin-bottom:12px;text-align:center}
 </style></head><body><div class="wrap">
- <div class="head"><span style="font-size:26px">🔧</span><h1>ServiPro</h1></div>
- <p class="sub">Seu caderninho inteligente: orcamento, agenda e ganhos 💪</p>
-
- <div class="stats">
-  <div class="stat green"><b>R$ {{'%.0f'|format(ganho)}}</b><span>ganhei no mes</span></div>
-  <div class="stat orange"><b>R$ {{'%.0f'|format(receber)}}</b><span>a receber</span></div>
-  <div class="stat"><b>{{agendados}}</b><span>agendados</span></div>
- </div>
-
- <div class="card">
-  <h3>🧾 Novo orcamento / servico</h3>
-  <form action="/novo" method="post">
-   <label>Cliente</label><input name="cliente" placeholder="Dona Maria" required>
-   <label>WhatsApp (DDD+numero)</label><input name="telefone" placeholder="11999998888" required>
-   <label>Descricao do servico</label><textarea name="descricao" placeholder="Instalar 2 tomadas" required></textarea>
-   <label>Valor (R$)</label><input name="valor" type="number" step="0.01" placeholder="150.00" required>
-   <label>Data do servico</label><input name="data" type="date" value="{{hoje}}" required>
-   <button>+ Cadastrar servico</button>
-  </form>
- </div>
-
- <div class="card">
-  <h3>📅 Meus servicos</h3>
-  {% for s in servicos %}
-   <div class="serv {{'pago' if s['pago'] else ''}}">
-    <b>{{s['cliente']}}</b> — <span class="valor">R$ {{'%.2f'|format(s['valor'])}}</span>
-    <span class="tag {{s['status']}}">{{ 'PAGO' if s['pago'] else s['status'] }}</span><br>
-    <small>🔧 {{s['descricao']}} · 📅 {{s['data']}}</small>
-    <div class="row">
-     <a class="act wpp" href="/orcamento/{{s['id']}}">📲 Enviar no Zap</a>
-     {% if not s['pago'] %}<a class="act ok" href="/concluir/{{s['id']}}">✅ Concluir</a>
-     <a class="act pay" href="/pago/{{s['id']}}">💰 Marcar pago</a>{% endif %}
-     <a class="act del" href="/excluir/{{s['id']}}">🗑️</a>
-    </div>
+<div class="top"><h1>🔧 ServiPro</h1><a href="/sair">Sair ({{nome}})</a></div>
+<p class="sub">Orcamento, agenda e ganhos</p>
+{% with m=get_flashed_messages() %}{% if m %}<div class="flash">{{m[0]}}</div>{% endif %}{% endwith %}
+<div class="stats">
+ <div class="stat green"><b>R$ {{'%.0f'|format(ganho)}}</b><span>ganhei no mes</span></div>
+ <div class="stat orange"><b>R$ {{'%.0f'|format(receber)}}</b><span>a receber</span></div>
+ <div class="stat"><b>{{agendados}}</b><span>agendados</span></div>
+</div>
+{% if gratis and not bloqueado %}
+ <div class="banner free">Plano GRATIS: voce ainda pode cadastrar <b>{{restantes}}</b> de {{limite}} servicos.<br>
+ <a href="{{link_pagamento}}">Virar Pro (ilimitado)</a></div>
+{% elif bloqueado %}
+ <div class="banner block">Voce usou seus {{limite}} servicos gratis!<br>Assine o <b>Pro</b> para cadastrar ilimitado.<br>
+ <a href="{{link_pagamento}}">Assinar Pro - R$ 19,90/mes</a></div>
+{% endif %}
+<div class="card">
+ <h3>Novo orcamento / servico</h3>
+ <form action="/novo" method="post">
+  <label>Cliente</label><input name="cliente" placeholder="Dona Maria" {{'disabled' if bloqueado}} required>
+  <label>WhatsApp (DDD+numero)</label><input name="telefone" placeholder="11999998888" {{'disabled' if bloqueado}} required>
+  <label>Descricao</label><textarea name="descricao" placeholder="Instalar 2 tomadas" {{'disabled' if bloqueado}} required></textarea>
+  <label>Valor (R$)</label><input name="valor" type="number" step="0.01" placeholder="150.00" {{'disabled' if bloqueado}} required>
+  <label>Data</label><input name="data" type="date" value="{{hoje}}" {{'disabled' if bloqueado}} required>
+  <button {{'disabled' if bloqueado}}>+ Cadastrar servico</button>
+ </form>
+</div>
+<div class="card">
+ <h3>Meus servicos</h3>
+ {% for s in servicos %}
+  <div class="serv {{'pago' if s['pago'] else ''}}">
+   <b>{{s['cliente']}}</b> - <span class="valor">R$ {{'%.2f'|format(s['valor'])}}</span>
+   <span class="tag {{s['status']}}">{{ 'PAGO' if s['pago'] else s['status'] }}</span><br>
+   <small>{{s['descricao']}} - {{s['data']}}</small>
+   <div class="row">
+    <a class="act wpp" href="/orcamento/{{s['id']}}">Enviar no Zap</a>
+    {% if not s['pago'] %}<a class="act ok" href="/concluir/{{s['id']}}">Concluir</a>
+    <a class="act pay" href="/pago/{{s['id']}}">Pago</a>{% endif %}
+    <a class="act del" href="/excluir/{{s['id']}}">Excluir</a>
    </div>
-  {% else %}<p style="color:#8794a8;font-size:13px">Nenhum servico ainda. Cadastre o primeiro! 🚀</p>{% endfor %}
- </div>
+  </div>
+ {% else %}<p style="color:#8794a8;font-size:13px">Nenhum servico ainda. Cadastre o primeiro!</p>{% endfor %}
+</div>
 </div></body></html>
