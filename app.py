@@ -6,11 +6,16 @@ app.secret_key = os.environ.get("SECRET_KEY", "troque-esta-chave-secreta-123")
 DB = "servipro.db"
 
 LIMITE_GRATIS = 5
+PRECO_PRO = "49,90"
 LINK_PAGAMENTO = os.environ.get("LINK_PAGAMENTO", "https://seu-link-de-pagamento.com")
 
 def db():
     con = sqlite3.connect(DB); con.row_factory = sqlite3.Row
     return con
+
+def coluna_existe(con, tabela, coluna):
+    cols = [r["name"] for r in con.execute(f"PRAGMA table_info({tabela})").fetchall()]
+    return coluna in cols
 
 def init_db():
     con = db()
@@ -24,6 +29,13 @@ def init_db():
         cliente TEXT, telefone TEXT, descricao TEXT,
         valor REAL, data TEXT, status TEXT DEFAULT 'agendado',
         pago INTEGER DEFAULT 0, criado_em TEXT)""")
+    # MIGRACAO AUTOMATICA: conserta bancos antigos que nao tinham essas colunas
+    if not coluna_existe(con, "usuarios", "plano"):
+        con.execute("ALTER TABLE usuarios ADD COLUMN plano TEXT DEFAULT 'gratis'")
+    if not coluna_existe(con, "servicos", "usuario_id"):
+        con.execute("ALTER TABLE servicos ADD COLUMN usuario_id INTEGER")
+    if not coluna_existe(con, "servicos", "pago"):
+        con.execute("ALTER TABLE servicos ADD COLUMN pago INTEGER DEFAULT 0")
     con.commit(); con.close()
 
 def hash_senha(s):
@@ -32,20 +44,23 @@ def hash_senha(s):
 def logado():
     return session.get("uid")
 
-def usuario_atual(con):
-    """Busca o usuario logado. Se nao existir mais (banco resetado), retorna None."""
+def usuario_atual():
+    """Busca usuario com seguranca. Se nao existir, derruba a sessao."""
     uid = session.get("uid")
-    if not uid:
-        return None
-    return con.execute("SELECT * FROM usuarios WHERE id=?", (uid,)).fetchone()
+    if not uid: return None
+    con = db()
+    u = con.execute("SELECT * FROM usuarios WHERE id=?", (uid,)).fetchone()
+    con.close()
+    return u
 
+# ---------------- CADASTRO / LOGIN ----------------
 @app.route("/cadastro", methods=["GET","POST"])
 def cadastro():
     if request.method=="POST":
         f=request.form; con=db()
         try:
-            con.execute("INSERT INTO usuarios(nome,email,senha,criado_em) VALUES(?,?,?,?)",
-                (f["nome"], f["email"].lower(), hash_senha(f["senha"]), datetime.datetime.now().isoformat()))
+            con.execute("INSERT INTO usuarios(nome,email,senha,plano,criado_em) VALUES(?,?,?,?,?)",
+                (f["nome"], f["email"].lower(), hash_senha(f["senha"]), "gratis", datetime.datetime.now().isoformat()))
             con.commit()
             u=con.execute("SELECT * FROM usuarios WHERE email=?", (f["email"].lower(),)).fetchone()
             session["uid"]=u["id"]; session["nome"]=u["nome"]
@@ -70,14 +85,29 @@ def login():
 def sair():
     session.clear(); return redirect("/login")
 
+# ---------------- ESQUECI A SENHA ----------------
+@app.route("/recuperar", methods=["GET","POST"])
+def recuperar():
+    if request.method=="POST":
+        f=request.form; con=db()
+        u=con.execute("SELECT * FROM usuarios WHERE email=?", (f["email"].lower(),)).fetchone()
+        if not u:
+            con.close(); flash("Email nao encontrado!"); return redirect("/recuperar")
+        con.execute("UPDATE usuarios SET senha=? WHERE email=?",
+            (hash_senha(f["nova_senha"]), f["email"].lower()))
+        con.commit(); con.close()
+        flash("Senha redefinida! Faca login com a nova senha.")
+        return redirect("/login")
+    return render_template("recuperar.html")
+
+# ---------------- PAINEL ----------------
 @app.route("/")
 def home():
     if not logado(): return redirect("/login")
-    con=db()
-    u=usuario_atual(con)
-    if u is None:
-        con.close(); session.clear(); return redirect("/login")
-    uid=u["id"]
+    u = usuario_atual()
+    if u is None:               # sessao invalida (usuario sumiu) -> reloga
+        session.clear(); return redirect("/login")
+    con=db(); uid=u["id"]
     servicos=con.execute("SELECT * FROM servicos WHERE usuario_id=? ORDER BY data ASC",(uid,)).fetchall()
     total=con.execute("SELECT COUNT(*) c FROM servicos WHERE usuario_id=?",(uid,)).fetchone()["c"]
     mes=datetime.date.today().strftime("%Y-%m")
@@ -85,24 +115,24 @@ def home():
     receber=con.execute("SELECT COALESCE(SUM(valor),0) t FROM servicos WHERE usuario_id=? AND pago=0 AND status='concluido'",(uid,)).fetchone()["t"]
     agendados=con.execute("SELECT COUNT(*) c FROM servicos WHERE usuario_id=? AND status='agendado'",(uid,)).fetchone()["c"]
     con.close()
-    gratis = (u["plano"]=="gratis")
+    plano = u["plano"] if "plano" in u.keys() and u["plano"] else "gratis"
+    gratis = (plano=="gratis")
     restantes = max(0, LIMITE_GRATIS - total) if gratis else None
     bloqueado = gratis and total >= LIMITE_GRATIS
     return render_template("index.html", servicos=servicos, ganho=ganho, receber=receber,
-        agendados=agendados, hoje=datetime.date.today().isoformat(), nome=session.get("nome",""),
+        agendados=agendados, hoje=datetime.date.today().isoformat(), nome=session.get("nome","você"),
         gratis=gratis, restantes=restantes, bloqueado=bloqueado,
-        limite=LIMITE_GRATIS, link_pagamento=LINK_PAGAMENTO)
+        limite=LIMITE_GRATIS, link_pagamento=LINK_PAGAMENTO, preco=PRECO_PRO)
 
 @app.route("/novo", methods=["POST"])
 def novo():
     if not logado(): return redirect("/login")
-    con=db()
-    u=usuario_atual(con)
-    if u is None:
-        con.close(); session.clear(); return redirect("/login")
-    uid=u["id"]
+    u = usuario_atual()
+    if u is None: session.clear(); return redirect("/login")
+    con=db(); uid=u["id"]
     total=con.execute("SELECT COUNT(*) c FROM servicos WHERE usuario_id=?",(uid,)).fetchone()["c"]
-    if u["plano"]=="gratis" and total >= LIMITE_GRATIS:
+    plano = u["plano"] if "plano" in u.keys() and u["plano"] else "gratis"
+    if plano=="gratis" and total >= LIMITE_GRATIS:
         con.close(); flash("Voce atingiu o limite gratis! Assine o Pro para cadastrar ilimitado."); return redirect("/")
     f=request.form
     con.execute("""INSERT INTO servicos(usuario_id,cliente,telefone,descricao,valor,data,criado_em)
@@ -133,25 +163,10 @@ def excluir(sid):
 def orcamento(sid):
     if not logado(): return redirect("/login")
     con=db(); s=con.execute("SELECT * FROM servicos WHERE id=? AND usuario_id=?",(sid,session["uid"])).fetchone(); con.close()
-    if s is None: return redirect("/")
+    if not s: return redirect("/")
     msg=f"*Orcamento - ServiPro*%0A%0AOla {s['cliente']}!%0A%0AServico: {s['descricao']}%0AValor: R$ {s['valor']:.2f}%0AData: {s['data']}%0A%0AQualquer duvida estou a disposicao!"
     tel="".join(c for c in s["telefone"] if c.isdigit())
     return redirect(f"https://wa.me/55{tel}?text={msg}")
-
-# ---------------- ESQUECI A SENHA ----------------
-@app.route("/recuperar", methods=["GET","POST"])
-def recuperar():
-    if request.method=="POST":
-        f=request.form; con=db()
-        u=con.execute("SELECT * FROM usuarios WHERE email=?", (f["email"].lower(),)).fetchone()
-        if not u:
-            con.close(); flash("Email nao encontrado!"); return redirect("/recuperar")
-        con.execute("UPDATE usuarios SET senha=? WHERE email=?",
-            (hash_senha(f["nova_senha"]), f["email"].lower()))
-        con.commit(); con.close()
-        flash("Senha redefinida! Faca login com a nova senha.")
-        return redirect("/login")
-    return render_template("recuperar.html")
 
 init_db()
 if __name__=="__main__":
