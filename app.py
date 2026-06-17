@@ -1,4 +1,3 @@
-
 import os, sqlite3, datetime, hashlib
 from flask import Flask, request, redirect, render_template, session, url_for, flash
 
@@ -32,6 +31,13 @@ def hash_senha(s):
 
 def logado():
     return session.get("uid")
+
+def usuario_atual(con):
+    """Busca o usuario logado. Se nao existir mais (banco resetado), retorna None."""
+    uid = session.get("uid")
+    if not uid:
+        return None
+    return con.execute("SELECT * FROM usuarios WHERE id=?", (uid,)).fetchone()
 
 @app.route("/cadastro", methods=["GET","POST"])
 def cadastro():
@@ -67,11 +73,11 @@ def sair():
 @app.route("/")
 def home():
     if not logado(): return redirect("/login")
-    con=db(); uid=session["uid"]
-    u=con.execute("SELECT * FROM usuarios WHERE id=?", (uid,)).fetchone()
-    # CORRECAO: se o usuario nao existir mais (banco resetado), limpa sessao e manda pro login
+    con=db()
+    u=usuario_atual(con)
     if u is None:
         con.close(); session.clear(); return redirect("/login")
+    uid=u["id"]
     servicos=con.execute("SELECT * FROM servicos WHERE usuario_id=? ORDER BY data ASC",(uid,)).fetchall()
     total=con.execute("SELECT COUNT(*) c FROM servicos WHERE usuario_id=?",(uid,)).fetchone()["c"]
     mes=datetime.date.today().strftime("%Y-%m")
@@ -83,17 +89,18 @@ def home():
     restantes = max(0, LIMITE_GRATIS - total) if gratis else None
     bloqueado = gratis and total >= LIMITE_GRATIS
     return render_template("index.html", servicos=servicos, ganho=ganho, receber=receber,
-        agendados=agendados, hoje=datetime.date.today().isoformat(), nome=session["nome"],
+        agendados=agendados, hoje=datetime.date.today().isoformat(), nome=session.get("nome",""),
         gratis=gratis, restantes=restantes, bloqueado=bloqueado,
         limite=LIMITE_GRATIS, link_pagamento=LINK_PAGAMENTO)
 
 @app.route("/novo", methods=["POST"])
 def novo():
     if not logado(): return redirect("/login")
-    con=db(); uid=session["uid"]
-    u=con.execute("SELECT * FROM usuarios WHERE id=?", (uid,)).fetchone()
+    con=db()
+    u=usuario_atual(con)
     if u is None:
         con.close(); session.clear(); return redirect("/login")
+    uid=u["id"]
     total=con.execute("SELECT COUNT(*) c FROM servicos WHERE usuario_id=?",(uid,)).fetchone()["c"]
     if u["plano"]=="gratis" and total >= LIMITE_GRATIS:
         con.close(); flash("Voce atingiu o limite gratis! Assine o Pro para cadastrar ilimitado."); return redirect("/")
@@ -130,6 +137,21 @@ def orcamento(sid):
     msg=f"*Orcamento - ServiPro*%0A%0AOla {s['cliente']}!%0A%0AServico: {s['descricao']}%0AValor: R$ {s['valor']:.2f}%0AData: {s['data']}%0A%0AQualquer duvida estou a disposicao!"
     tel="".join(c for c in s["telefone"] if c.isdigit())
     return redirect(f"https://wa.me/55{tel}?text={msg}")
+
+# ---------------- ESQUECI A SENHA ----------------
+@app.route("/recuperar", methods=["GET","POST"])
+def recuperar():
+    if request.method=="POST":
+        f=request.form; con=db()
+        u=con.execute("SELECT * FROM usuarios WHERE email=?", (f["email"].lower(),)).fetchone()
+        if not u:
+            con.close(); flash("Email nao encontrado!"); return redirect("/recuperar")
+        con.execute("UPDATE usuarios SET senha=? WHERE email=?",
+            (hash_senha(f["nova_senha"]), f["email"].lower()))
+        con.commit(); con.close()
+        flash("Senha redefinida! Faca login com a nova senha.")
+        return redirect("/login")
+    return render_template("recuperar.html")
 
 init_db()
 if __name__=="__main__":
