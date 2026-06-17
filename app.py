@@ -29,7 +29,6 @@ def init_db():
         cliente TEXT, telefone TEXT, descricao TEXT,
         valor REAL, data TEXT, status TEXT DEFAULT 'agendado',
         pago INTEGER DEFAULT 0, criado_em TEXT)""")
-    # MIGRACAO AUTOMATICA: conserta bancos antigos que nao tinham essas colunas
     if not coluna_existe(con, "usuarios", "plano"):
         con.execute("ALTER TABLE usuarios ADD COLUMN plano TEXT DEFAULT 'gratis'")
     if not coluna_existe(con, "servicos", "usuario_id"):
@@ -45,9 +44,10 @@ def logado():
     return session.get("uid")
 
 def usuario_atual():
-    """Busca usuario com seguranca. Se nao existir, derruba a sessao."""
+    """Busca usuario com seguranca. Se nao existir, retorna None."""
     uid = session.get("uid")
-    if not uid: return None
+    if not uid:
+        return None
     con = db()
     u = con.execute("SELECT * FROM usuarios WHERE id=?", (uid,)).fetchone()
     con.close()
@@ -103,10 +103,12 @@ def recuperar():
 # ---------------- PAINEL ----------------
 @app.route("/")
 def home():
-    if not logado(): return redirect("/login")
+    if not logado():
+        return redirect("/login")
     u = usuario_atual()
-    if u is None:               # sessao invalida (usuario sumiu) -> reloga
-        session.clear(); return redirect("/login")
+    if u is None:                       # <-- PROTECAO: sessao fantasma -> reloga ANTES de ler u[...]
+        session.clear()
+        return redirect("/login")
     con=db(); uid=u["id"]
     servicos=con.execute("SELECT * FROM servicos WHERE usuario_id=? ORDER BY data ASC",(uid,)).fetchall()
     total=con.execute("SELECT COUNT(*) c FROM servicos WHERE usuario_id=?",(uid,)).fetchone()["c"]
@@ -115,7 +117,7 @@ def home():
     receber=con.execute("SELECT COALESCE(SUM(valor),0) t FROM servicos WHERE usuario_id=? AND pago=0 AND status='concluido'",(uid,)).fetchone()["t"]
     agendados=con.execute("SELECT COUNT(*) c FROM servicos WHERE usuario_id=? AND status='agendado'",(uid,)).fetchone()["c"]
     con.close()
-    plano = u["plano"] if "plano" in u.keys() and u["plano"] else "gratis"
+    plano = u["plano"] if ("plano" in u.keys() and u["plano"]) else "gratis"
     gratis = (plano=="gratis")
     restantes = max(0, LIMITE_GRATIS - total) if gratis else None
     bloqueado = gratis and total >= LIMITE_GRATIS
@@ -126,12 +128,15 @@ def home():
 
 @app.route("/novo", methods=["POST"])
 def novo():
-    if not logado(): return redirect("/login")
+    if not logado():
+        return redirect("/login")
     u = usuario_atual()
-    if u is None: session.clear(); return redirect("/login")
+    if u is None:
+        session.clear()
+        return redirect("/login")
     con=db(); uid=u["id"]
     total=con.execute("SELECT COUNT(*) c FROM servicos WHERE usuario_id=?",(uid,)).fetchone()["c"]
-    plano = u["plano"] if "plano" in u.keys() and u["plano"] else "gratis"
+    plano = u["plano"] if ("plano" in u.keys() and u["plano"]) else "gratis"
     if plano=="gratis" and total >= LIMITE_GRATIS:
         con.close(); flash("Voce atingiu o limite gratis! Assine o Pro para cadastrar ilimitado."); return redirect("/")
     f=request.form
