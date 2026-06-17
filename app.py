@@ -1,3 +1,4 @@
+
 import os, sqlite3, datetime, hashlib
 from flask import Flask, request, redirect, render_template, session, url_for, flash
 
@@ -68,6 +69,9 @@ def home():
     if not logado(): return redirect("/login")
     con=db(); uid=session["uid"]
     u=con.execute("SELECT * FROM usuarios WHERE id=?", (uid,)).fetchone()
+    # CORRECAO: se o usuario nao existir mais (banco resetado), limpa sessao e manda pro login
+    if u is None:
+        con.close(); session.clear(); return redirect("/login")
     servicos=con.execute("SELECT * FROM servicos WHERE usuario_id=? ORDER BY data ASC",(uid,)).fetchall()
     total=con.execute("SELECT COUNT(*) c FROM servicos WHERE usuario_id=?",(uid,)).fetchone()["c"]
     mes=datetime.date.today().strftime("%Y-%m")
@@ -88,6 +92,8 @@ def novo():
     if not logado(): return redirect("/login")
     con=db(); uid=session["uid"]
     u=con.execute("SELECT * FROM usuarios WHERE id=?", (uid,)).fetchone()
+    if u is None:
+        con.close(); session.clear(); return redirect("/login")
     total=con.execute("SELECT COUNT(*) c FROM servicos WHERE usuario_id=?",(uid,)).fetchone()["c"]
     if u["plano"]=="gratis" and total >= LIMITE_GRATIS:
         con.close(); flash("Voce atingiu o limite gratis! Assine o Pro para cadastrar ilimitado."); return redirect("/")
@@ -120,23 +126,11 @@ def excluir(sid):
 def orcamento(sid):
     if not logado(): return redirect("/login")
     con=db(); s=con.execute("SELECT * FROM servicos WHERE id=? AND usuario_id=?",(sid,session["uid"])).fetchone(); con.close()
+    if s is None: return redirect("/")
     msg=f"*Orcamento - ServiPro*%0A%0AOla {s['cliente']}!%0A%0AServico: {s['descricao']}%0AValor: R$ {s['valor']:.2f}%0AData: {s['data']}%0A%0AQualquer duvida estou a disposicao!"
     tel="".join(c for c in s["telefone"] if c.isdigit())
     return redirect(f"https://wa.me/55{tel}?text={msg}")
-# ---------------- ESQUECI A SENHA ----------------
-@app.route("/recuperar", methods=["GET","POST"])
-def recuperar():
-    if request.method=="POST":
-        f=request.form; con=db()
-        u=con.execute("SELECT * FROM usuarios WHERE email=?", (f["email"].lower(),)).fetchone()
-        if not u:
-            con.close(); flash("Email nao encontrado!"); return redirect("/recuperar")
-        con.execute("UPDATE usuarios SET senha=? WHERE email=?",
-            (hash_senha(f["nova_senha"]), f["email"].lower()))
-        con.commit(); con.close()
-        flash("Senha redefinida! Faca login com a nova senha.")
-        return redirect("/login")
-    return render_template("recuperar.html")
+
 init_db()
 if __name__=="__main__":
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT",5000)))
